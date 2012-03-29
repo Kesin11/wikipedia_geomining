@@ -1,36 +1,44 @@
 #coding: utf-8
 '''
 wikipediaダンプデータから位置情報を含むものを抽出する
-ただし事件などのthingsは抽出しない
-* infoウィンドウから座標抽出
-* [ウィキ座標, coord] + display=titleはOK。それ以外は後で考える
-* typeを抽出。eventは除いておく
-* landmark_regionのように載っていないタイプもある
-* display, titleは順番通りに並んでいるとは限らない
-* infoboxにしか座標がないこともある
-  * | coordinates
-  * [ウィキ座標, coord]が存在する行を抜き出して一時保存してから解析するか？
+出力形式: title,type,lat,lng
+優先順位:
+    1. [ウィキ座標, coord] + display=title
+    2. infobox内の display=inline
+    3. infobox内の日本語記述 | 緯度度 ... | 経度度 ...
+
 '''
 import re
 import codecs
 import sys
 
-def get_place_info(lines):
-    try:
-        title = re.search('<title>(.+)</title>', lines.pop(0)).group(1)
-    except(AttributeError):
-        print "error" , lines
+def get_place_info(title, lines):
+    '''display=で記述されている座標情報から抽出'''
+    places=[]
     for line in lines:
-        #ex. display=inline,title
-        if re.search('display=.*title', line):
-            #ex. type:edu_region  type:waterbody|display
-            type_re = re.search('type:(.+?)[_|}|\|]', line)
-            type = type_re.group(1) if type_re else ''
-            print title, type,
-            coord = get_coord(line)
-            print coord
-            print line.strip()
-            print "-------------------------------------------"
+        type_re = re.search('type:(.+?)[_|}|\|]', line)
+        type = type_re.group(1) if type_re else ''
+        coord = get_coord(line)
+        if coord:
+            places.append({
+                          'title': title,
+                          'type': type,
+                          'lat': coord[0],
+                          'lng': coord[1]})
+    return places
+        
+def get_place_info_jp(title, string):
+    '''infobox内に| 緯度度 ... | 経度度 ...　
+        で記述されている座標情報から抽出'''
+    places=[]
+    coord = get_coord_jp(string)
+    if coord:
+        places.append({
+                      'title': title,
+                      'type': '',
+                      'lat': coord[0],
+                      'lng': coord[1]})
+    return places
             
 def get_coord(string):
     '''座標情報を取得する
@@ -40,6 +48,7 @@ def get_coord(string):
     '''
     is_south = re.search('\|S', string)
     is_west = re.search('\|W', string)
+    #dms表記
     coord_re = re.search('\|(\d+\|\d+(\|?\d*?)?(\.\d+)?)\|[N,S]\|(\d+\|\d+(\|?\d*?)?(\.\d+)?)\|[E,W]', string)
     if coord_re:
         lat_dms = map((lambda x: float(x) if not x == '' else 0), coord_re.group(1).split('|'))
@@ -54,7 +63,8 @@ def get_coord(string):
         if is_west: lng_deg *= -1
         return (lat_deg, lng_deg)
     
-    coord_re = re.search('(-?\d+(\.\d+)?)\|([N,S]\|)?(-?\d+(\.\d+)?)', string)
+    #deg表記とdmsの度表記のみ
+    coord_re = re.search('\s?(-?\d+(\.\d+)?)\|([N,S]\|)?\s?(-?\d+(\.\d+)?)', string)
     if coord_re:
         lat_deg = float(coord_re.group(1))
         lng_deg = float(coord_re.group(4))
@@ -62,23 +72,72 @@ def get_coord(string):
         if is_west: lng_deg *= -1
         return (lat_deg, lng_deg)
     
-    assert coord_re, "No match: " + string
+    return None
     
+def get_coord_jp(string):
+    """日本語のinfoboxでの少数派な記述方法
+    | 緯度度 = 35 | 緯度分 = 38 | 緯度秒 = 3.8 | N(北緯)及びS(南緯) = N
+    | 経度度 = 139 |経度分 = 47 | 経度秒 = 29.8 | E(東経)及びW(西経) = E
+    に対応する"""
+    is_south = re.search('=\s*?S', string)
+    is_west = re.search('=\s*?W', string)
+    
+    try:
+        lat_dms = re.search(u'緯度度\s*=\s*(-?\d+(\.\d+)?).+緯度分\s*=\s*(\d+)?.+緯度秒\s*=\s*(\d+(\.\d+)?)?', string).groups()
+    except(AttributeError):
+        return None
+    lat_dms = map((lambda x: float(x) if x else 0), lat_dms)
+    #緯度度に全て記述されてるときはdmf -> deg 変換を行わない
+    if not lat_dms[1] == 0:
+        lat_deg = lat_dms[0]
+    else:
+        lat_deg = lat_dms[0] + lat_dms[2]/60 + lat_dms[3]/3600
+    
+    try:
+        lng_dms = re.search(u'経度度\s*=\s*(-?\d+(\.\d+)?).+経度分\s*=\s*(\d+)?.+経度秒\s*=\s*(\d+(\.\d+)?)?', string).groups()
+    except(AttributeError):
+        return None
+    lng_dms = map((lambda x: float(x) if x else 0), lng_dms)
+    if not lng_dms[1] == 0:
+        lng_deg = lng_dms[0]
+    else:
+        lng_deg = lng_dms[0] + lng_dms[2]/60 + lng_dms[3]/3600
+    
+    if is_south: lat_deg *= -1
+    if is_west: lng_deg *= -1
+    return (lat_deg, lng_deg)
 
 if __name__ == '__main__':
     PATH = "/Users/Kenta/Downloads/wikidump_2012_03/jawiki-latest-pages-articles.xml"
-    file = codecs.open(PATH, 'r', 'utf-8')
-    page_lines=['<title>dammy</title>']
-    count = 0
-    line =  file.readline()
+#    PATH = "/Users/Kenta/tmpdata/wiki_test.txt"
+    FILE = codecs.open(PATH, 'r', 'utf-8')
+    
+    title = ''
+    page_lines=[]
+    page_lines_jp=[]
+    line =  FILE.readline()
     while line:
-        if count > 10:
-            sys.exit()
-        if re.search('<title>(.+)</title>', line):
-            get_place_info(page_lines)
-            page_lines=[]
+        title_re = re.search('<title>(.+)</title>', line)
+        if title_re:
+            #基本的にdisplay=title,inlineがあるものを信用する
+            places = get_place_info(title, page_lines)
+            if page_lines_jp and not places:
+                places = get_place_info_jp(title, '\n'.join(page_lines_jp))
+            
+            for place in places:
+                print "%s,%s,%s,%s" % (place['title'],place['type'],place['lat'],place['lng'])
+            
+            title = title_re.group(1)
+            page_lines = []
+            page_lines_jp = []
+#        if re.search('{{Coord.+}}', line):
+        elif re.search('display=.*title', line):
+            page_lines.insert(0, line)
+        elif re.search('^\|.+display=inline', line):
             page_lines.append(line)
-        if re.search('{{Coord.+}}', line):
-            page_lines.append(line)
-        line = file.readline()
+        elif re.search(u'緯度度\s*?=\s*?\d+', line):
+            page_lines_jp.append(line)
+            line = FILE.readline()
+            page_lines_jp.append(line)
+        line = FILE.readline()
         
