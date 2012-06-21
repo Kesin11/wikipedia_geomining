@@ -16,7 +16,7 @@ def get_place_info(title, lines):
     '''display=で記述されている座標情報から抽出'''
     places=[]
     for line in lines:
-        type_re = re.search('type:(.+?)[_|}|\|]', line)
+        type_re = re.search('type:(.+?)[_|}|\(|\|]', line)
         type = type_re.group(1) if type_re else ''
         coord = get_coord(line)
         if coord:
@@ -125,7 +125,7 @@ if __name__ == '__main__':
                 places = get_place_info_jp(title, '\n'.join(page_lines_jp))
             
             for place in places:
-                print "%s,%s,%s,%s" % (place['title'],place['type'],place['lat'],place['lng'])
+                print "%s|%s|%s|%s" % (place['title'],place['type'],place['lat'],place['lng'])
             
             title = title_re.group(1)
             page_lines = []
