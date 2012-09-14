@@ -1,7 +1,7 @@
 #coding: utf-8
 '''
 wikipediaダンプデータから位置情報を含むものを抽出する
-出力形式: title,type,lat,lng
+出力形式: title|type|lat|lng
 優先順位:
     1. [ウィキ座標, coord] + display=title
     2. infobox内の display=inline
@@ -108,8 +108,7 @@ def get_coord_jp(string):
     return (lat_deg, lng_deg)
 
 if __name__ == '__main__':
-    PATH = "/Users/Kenta/Downloads/wikidump_2012_03/jawiki-latest-pages-articles.xml"
-#    PATH = "/Users/Kenta/tmpdata/wiki_test.txt"
+    PATH = sys.argv[1]
     FILE = codecs.open(PATH, 'r', 'utf-8')
     
     title = ''
@@ -125,8 +124,9 @@ if __name__ == '__main__':
                 places = get_place_info_jp(title, '\n'.join(page_lines_jp))
             
             for place in places:
-                print "%s|%s|%s|%s" % (place['title'],place['type'],place['lat'],place['lng'])
-            
+                string =  "%s|%s|%s|%s" % (place['title'],place['type'],place['lat'],place['lng'])
+                print string.encode('utf-8')
+
             title = title_re.group(1)
             page_lines = []
             page_lines_jp = []
