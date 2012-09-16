@@ -110,7 +110,10 @@ def get_coord_jp(string):
 if __name__ == '__main__':
     PATH = sys.argv[1]
     FILE = codecs.open(PATH, 'r', 'utf-8')
-    
+   
+    #add header
+    print "title|type|lat|lng"
+
     title = ''
     page_lines=[]
     page_lines_jp=[]
