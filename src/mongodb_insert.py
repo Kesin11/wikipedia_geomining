@@ -20,8 +20,8 @@ if __name__ == '__main__':
         if(lat < -180 or lat > 180):
 #            print place['title'], place
             continue
-        db.wiki_place.save({'title':place['title'],
-                            'type':place['type'],
+        db.wiki_place.save({'title':place['title'].decode('utf-8'),
+                            'category':place['category'],
                             'coord':[lon, lat]
                             })
     
