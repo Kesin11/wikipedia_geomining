@@ -7,6 +7,7 @@ wikipediaダンプデータから位置情報を含むものを抽出する
     2. infobox内の display=inline
     3. infobox内の日本語記述 | 緯度度 ... | 経度度 ...
 
+xml.sax, cElementree.iterparse, lxmlとかを使えばXMLをメモリに全て乗せなくても解析できることが分かったので、そのうち書き換えるかも
 '''
 import re
 import codecs

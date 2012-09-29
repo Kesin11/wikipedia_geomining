@@ -4,11 +4,10 @@
 座標の表し方には何通りかあるらしいので、統一が必要
 ちゃんとwikiページと確認を取る
 ある程度取れてきたら本番環境でエラーを調べて、テストに追加していく
-TODO: coordだけではなく、ウィキ座標系に対応
+TODO: "ウィキ座標2段度分秒"みたいなフォーマットに対応させる
 TODO: 10進数、60進数のフォーマットに対応
 TODO: dms, degree表示の変換 http://gis.stackexchange.com/questions/16555/converting-from-dms-to-dd-using-python-in-field-calculator , http://www.rottel.net/kuwa/12403
 http://stackoverflow.com/questions/6460381/translate-exif-dms-to-dd-geolocation-with-python
-TODO: 基本はNEだけどSWでの符号反転への対応もしないとマズイ
 '''
 import unittest
 import coordinate
@@ -123,7 +122,7 @@ class RegexTest(unittest.TestCase):
         self.assertEqual(ans, tuple(latlng))
     def test_jp4(self):
     #緯度度に全て記入
-    #シカゴ
+    #ロッテルダム
         string = u"""|緯度度 = 51.922832 |緯度分 = |緯度秒 = |N(北緯)及びS(南緯) = N
 |経度度 = 4.479606 |経度分 = |経度秒 = |E(東経)及びW(西経) = E"""
         ans = (51.922832, 4.479606)
