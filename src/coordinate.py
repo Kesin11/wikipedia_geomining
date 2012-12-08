@@ -1,7 +1,7 @@
 #coding: utf-8
 '''
 wikipediaダンプデータから位置情報を含むものを抽出する
-出力形式: title|type|lat|lng
+出力形式: title|category|lat|lng
 優先順位:
     1. [ウィキ座標, coord] + display=title
     2. infobox内の display=inline
@@ -17,13 +17,13 @@ def get_place_info(title, lines):
     '''display=で記述されている座標情報から抽出'''
     places=[]
     for line in lines:
-        type_re = re.search('type:(.+?)[_|}|\(|\|]', line)
-        type = type_re.group(1) if type_re else ''
+        category_re = re.search('type:(.+?)[_|}|\(|\|]', line)
+        category = category_re.group(1) if category_re else ''
         coord = get_coord(line)
         if coord:
             places.append({
                           'title': title,
-                          'type': type.strip(),
+                          'category': category.strip(),
                           'lat': coord[0],
                           'lng': coord[1]})
     return places
@@ -36,7 +36,7 @@ def get_place_info_jp(title, string):
     if coord:
         places.append({
                       'title': title,
-                      'type': '',
+                      'category': '',
                       'lat': coord[0],
                       'lng': coord[1]})
     return places
@@ -113,7 +113,7 @@ if __name__ == '__main__':
     FILE = codecs.open(PATH, 'r', 'utf-8')
    
     #add header
-    print "title|type|lat|lng"
+    print "title|category|lat|lng"
 
     title = ''
     page_lines=[]
@@ -128,7 +128,7 @@ if __name__ == '__main__':
                 places = get_place_info_jp(title, '\n'.join(page_lines_jp))
             
             for place in places:
-                string =  "%s|%s|%s|%s" % (place['title'],place['type'],place['lat'],place['lng'])
+                string =  "%s|%s|%s|%s" % (place['title'],place['category'],place['lat'],place['lng'])
                 print string.encode('utf-8')
 
             title = title_re.group(1)
