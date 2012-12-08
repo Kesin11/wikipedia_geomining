@@ -2,3 +2,5 @@
 /.pydevproject
 /.settings
 *.pyc
+diff_latest
+wiki_place.csv.old
