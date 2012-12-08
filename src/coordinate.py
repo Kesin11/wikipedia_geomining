@@ -23,7 +23,7 @@ def get_place_info(title, lines):
         if coord:
             places.append({
                           'title': title,
-                          'type': type,
+                          'type': type.strip(),
                           'lat': coord[0],
                           'lng': coord[1]})
     return places
