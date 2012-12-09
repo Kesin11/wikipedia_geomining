@@ -45,7 +45,8 @@ class RegexTest(unittest.TestCase):
         string = "{{Coord|44|N|35|E|type:waterbody_scale:8000000 |display=title}}"
         ans = (44, 35)
         self.assertEqual(ans, coordinate.get_coord(string))
-    #------以下はdms -> degreeの変換が必要-----
+
+    #------dms -> degreeの変換が必要-----
     #テストコードで小数点の有効桁数を合わせるために一工夫
     def test_dms2(self):
         #2桁区切り
@@ -96,6 +97,45 @@ class RegexTest(unittest.TestCase):
         ans = (-90, 0)
         latlng = map(lambda x: round(x, 6), coordinate.get_coord(string))
         self.assertEqual(ans, tuple(latlng))
+
+    #-----title, inlineは無いがinfobox内の記述
+    def test_infoboxcoord1(self):
+    #内船駅
+        string = u"""|座標 = {{coord|35|16|55.76|N|138|27|53.91|E|}}"""
+        ans = (35.282156, 138.464975)
+        latlng = map(lambda x: round(x, 6), coordinate.get_coord(string))
+        self.assertEqual(ans, tuple(latlng))
+
+   #------indobox内の"ウィキ座標..."への対応----- 
+    def test_wikicoord1(self):
+        #ウィキ座標度
+        #ひょうたん島 (埼玉県)
+        string = u"""|座標 = {{ウィキ座標度|36|7|52|N|139|0|28|E|}}"""
+        ans = (36.131111, 139.007778)
+        latlng = map(lambda x: round(x, 6), coordinate.get_coord(string))
+        self.assertEqual(ans, tuple(latlng))
+    def test_wikicoord2(self):
+        #ウィキ座標度分
+        #モンブラン
+        string = u"""|座標={{ウィキ座標度分|45|50|00|N|6|55|00|E|}}"""
+        ans = (45.833333, 6.916667)
+        latlng = map(lambda x: round(x, 6), coordinate.get_coord(string))
+        self.assertEqual(ans, tuple(latlng))
+    def test_wikicoord3(self):
+        #ウィキ座標度分秒 
+        #猪苗代駅
+        string = u"""|座標 = {{ウィキ座標度分秒|37|32|46.73|N|140|6|11.08|E|}}"""
+        ans = (37.546314, 140.103078)
+        latlng = map(lambda x: round(x, 6), coordinate.get_coord(string))
+        self.assertEqual(ans, tuple(latlng))
+    def test_wikicoord4(self):
+        #ウィキ座標2段度分秒
+        #新大阪駅
+        string = u"""|座標      = {{ウィキ座標2段度分秒|34|44|0.54|N|135|30|0.41|E|type:railwaystation_region:JP}}"""
+        ans = (34.733483, 135.500114)
+        latlng = map(lambda x: round(x, 6), coordinate.get_coord(string))
+        self.assertEqual(ans, tuple(latlng))
+
     #------以下はinfobox内での少数派の記述方法------
     def test_jp1(self):
     #東京国際展示場
