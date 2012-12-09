@@ -135,9 +135,13 @@ if __name__ == '__main__':
             page_lines = []
             page_lines_jp = []
 #        if re.search('{{Coord.+}}', line):
-        elif re.search('display=.*title', line):
+        if re.search('display=.*title', line):
             page_lines.insert(0, line)
         elif re.search('^\|.+display=inline', line):
+            page_lines.append(line)
+        elif re.search('^\|.+{{[Cc]oord.+}}', line):
+            page_lines.append(line)
+        elif re.search('^\|.+{{[ウィキ座標.+}}', line):
             page_lines.append(line)
         elif re.search(u'緯度度\s*?=\s*?\d+', line):
             page_lines_jp.append(line)
