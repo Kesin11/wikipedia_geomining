@@ -65,7 +65,7 @@ def get_coord(string):
         return (lat_deg, lng_deg)
     
     #deg表記とdmsの度表記のみ
-    coord_re = re.search('\s?(-?\d+(\.\d+)?)\|([N,S]\|)?\s?(-?\d+(\.\d+)?)', string)
+    coord_re = re.search('\s?(-?\d+(\.\d+)?)\|([N,S]\|)?\s?(-?\d+(\.\d+)?)', string, re.UNICODE)
     if coord_re:
         lat_deg = float(coord_re.group(1))
         lng_deg = float(coord_re.group(4))
@@ -80,11 +80,11 @@ def get_coord_jp(string):
     | 緯度度 = 35 | 緯度分 = 38 | 緯度秒 = 3.8 | N(北緯)及びS(南緯) = N
     | 経度度 = 139 |経度分 = 47 | 経度秒 = 29.8 | E(東経)及びW(西経) = E
     に対応する"""
-    is_south = re.search('=\s*?S', string)
-    is_west = re.search('=\s*?W', string)
+    is_south = re.search('=\s*?S', string, re.UNICODE)
+    is_west = re.search('=\s*?W', string, re.UNICODE)
     
     try:
-        lat_dms = re.search(u'緯度度\s*=\s*(-?\d+(\.\d+)?).+緯度分\s*=\s*(\d+)?.+緯度秒\s*=\s*(\d+(\.\d+)?)?', string).groups()
+        lat_dms = re.search(u'緯度度\s*=\s*(-?\d+(\.\d+)?).+緯度分\s*=\s*(\d+)?.+緯度秒\s*=\s*(\d+(\.\d+)?)?', string, re.UNICODE).groups()
     except(AttributeError):
         return None
     lat_dms = map((lambda x: float(x) if x else 0), lat_dms)
@@ -95,7 +95,7 @@ def get_coord_jp(string):
         lat_deg = lat_dms[0] + lat_dms[2]/60 + lat_dms[3]/3600
     
     try:
-        lng_dms = re.search(u'経度度\s*=\s*(-?\d+(\.\d+)?).+経度分\s*=\s*(\d+)?.+経度秒\s*=\s*(\d+(\.\d+)?)?', string).groups()
+        lng_dms = re.search(u'経度度\s*=\s*(-?\d+(\.\d+)?).+経度分\s*=\s*(\d+)?.+経度秒\s*=\s*(\d+(\.\d+)?)?', string, re.UNICODE).groups()
     except(AttributeError):
         return None
     lng_dms = map((lambda x: float(x) if x else 0), lng_dms)
@@ -122,10 +122,11 @@ if __name__ == '__main__':
     while line:
         title_re = re.search('<title>(.+)</title>', line)
         if title_re:
-            #基本的にdisplay=title,inlineがあるものを信用する
+            #座標の抽出
+            places=[]
             places = get_place_info(title, page_lines)
-            if page_lines_jp and not places:
-                places = get_place_info_jp(title, '\n'.join(page_lines_jp))
+            if page_lines_jp:
+                places += get_place_info_jp(title, '\n'.join(page_lines_jp))
             
             for place in places:
                 string =  "%s|%s|%s|%s" % (place['title'],place['category'],place['lat'],place['lng'])
@@ -134,18 +135,19 @@ if __name__ == '__main__':
             title = title_re.group(1)
             page_lines = []
             page_lines_jp = []
-#        if re.search('{{Coord.+}}', line):
-        if re.search('display=.*title', line):
+        #タイトル右上に表示されている座標
+        if re.search(u'display=.*title', line):
             page_lines.insert(0, line)
-        elif re.search('^\|.+display=inline', line):
+        #infobox内
+        elif re.search(u'^\|.+{{[Cc]oord.+}}\s*$', line, re.UNICODE):
             page_lines.append(line)
-        elif re.search('^\|.+{{[Cc]oord.+}}', line):
+        elif re.search(u'^\|.+{{ウィキ座標.+}}\s*$', line, re.UNICODE):
             page_lines.append(line)
-        elif re.search('^\|.+{{[ウィキ座標.+}}', line):
-            page_lines.append(line)
-        elif re.search(u'緯度度\s*?=\s*?\d+', line):
+        elif re.search(u'緯度度\s*?=\s*?\d+', line, re.UNICODE):
             page_lines_jp.append(line)
             line = FILE.readline()
             page_lines_jp.append(line)
+        #本文中の座標
+        elif re.search(u'^\|.+display=inline', line):
+            page_lines.append(line)
         line = FILE.readline()
-        
