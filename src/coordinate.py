@@ -120,6 +120,8 @@ if __name__ == '__main__':
     page_lines_jp=[]
     line =  FILE.readline()
     while line:
+        #末尾の空白処理
+        line = line.strip()
         title_re = re.search('<title>(.+)</title>', line)
         if title_re:
             #座標の抽出
@@ -139,9 +141,9 @@ if __name__ == '__main__':
         if re.search(u'display=.*title', line):
             page_lines.insert(0, line)
         #infobox内
-        elif re.search(u'^\|.+{{[Cc]oord.+}}\s*$', line, re.UNICODE):
+        elif re.search(u'^\|.+{{[Cc]oord.+}}$', line, re.UNICODE):
             page_lines.append(line)
-        elif re.search(u'^\|.+{{ウィキ座標.+}}\s*$', line, re.UNICODE):
+        elif re.search(u'^\|.+{{ウィキ座標.+}}$', line, re.UNICODE):
             page_lines.append(line)
         elif re.search(u'緯度度\s*?=\s*?\d+', line, re.UNICODE):
             page_lines_jp.append(line)
