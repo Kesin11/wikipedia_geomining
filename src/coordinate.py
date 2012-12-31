@@ -2,10 +2,11 @@
 '''
 wikipediaダンプデータから位置情報を含むものを抽出する
 出力形式: title|category|lat|lng
-優先順位:
-    1. [ウィキ座標, coord] + display=title
-    2. infobox内の display=inline
-    3. infobox内の日本語記述 | 緯度度 ... | 経度度 ...
+抽出可能な表記:
+    * [ウィキ座標, coord] + display=title
+    * infobox内の display=inline
+    * infobox内の日本語記述 | 緯度度 ... | 経度度 ...
+    * infobox内の[ウィキ座標, coord]
 
 xml.sax, cElementree.iterparse, lxmlとかを使えばXMLをメモリに全て乗せなくても解析できることが分かったので、そのうち書き換えるかも
 '''
