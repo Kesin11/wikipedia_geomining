@@ -29,9 +29,10 @@ def get_places_info(title, lines):
                           'lng': coord[1]})
     return places
         
-def get_places_info_jp(title, string):
+def get_places_info_jp(title, lines):
     '''infobox内に| 緯度度 ... | 経度度 ...　
         で記述されている座標情報から抽出'''
+    string = '\n'.join(lines)
     places=[]
     coord = str_to_coord_jp(string)
     if coord:
@@ -122,17 +123,15 @@ if __name__ == '__main__':
     title = ''
     page_lines=[]
     page_lines_jp=[]
-    line =  FILE.readline()
-    while line:
+    for line in FILE:
         #末尾の空白処理
         line = line.strip()
         TITLE_re = re.search('<title>(.+)</title>', line)
         if TITLE_re:
             #座標の抽出
-            places=[]
             places = get_places_info(title, page_lines)
             if page_lines_jp:
-                places += get_places_info_jp(title, '\n'.join(page_lines_jp))
+                places += get_places_info_jp(title, page_lines_jp)
             
             for place in places:
                 string =  "%s|%s|%s|%s" % (place['title'],place['category'],place['lat'],place['lng'])
@@ -154,9 +153,8 @@ if __name__ == '__main__':
         #緯度度、経度度は2行に分かれているので一行進める
         elif re.search(u'緯度度\s*?=\s*?\d+', line, re.UNICODE):
             page_lines_jp.append(line)
-            line = FILE.readline()
+            line = FILE.next()
             page_lines_jp.append(line)
         #本文中の座標
         elif re.search(u'^\|.+display=inline', line):
             page_lines.append(line)
-        line = FILE.readline()
