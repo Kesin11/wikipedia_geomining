@@ -14,6 +14,10 @@ import re
 import codecs
 import sys
 
+def dms_to_dd(deg=0, minute=0, sec=0):
+    '''度分秒(dms)を10進角(decimal degrees)に変換'''
+    return deg + minute/60 + sec/3600
+
 def get_places_info(title, lines):
     '''display=で記述されている座標情報から抽出'''
     places=[]
@@ -31,7 +35,8 @@ def get_places_info(title, lines):
         
 def get_places_info_jp(title, lines):
     '''infobox内に| 緯度度 ... | 経度度 ...　
-        で記述されている座標情報から抽出'''
+    で記述されている座標情報から抽出
+    '''
     string = '\n'.join(lines)
     places=[]
     coord = str_to_coord_jp(string)
@@ -45,29 +50,36 @@ def get_places_info_jp(title, lines):
             
 def str_to_coord(string):
     '''座標情報を取得する
-       dms表記はdegree表記に変換する
+       dms表記はdecimal degree表記に変換する
        (南緯、西経)表記は(北緯、東経)表記に変換する
        どのような表記に対応しているかはregex_testで確認
     '''
+    def strings_to_dms(strings):
+        '''度分秒の文字列リストをそれぞれfloatに変換してdmsのタプルを返す
+        秒が存在しない場合でも0を追加して必ずdmsを返す
+        '''
+        dms = map((lambda x: float(x) if x else 0.0), strings) 
+        if len(dms) < 3: dms.append(0)
+        return (dms[0], dms[1], dms[2])
+
     is_south = re.search('\|S', string)
     is_west = re.search('\|W', string)
+
     #dms表記
     COORD_re = re.search('\|(\d+\|\d+(\|?\d*?)?(\.\d+)?)\|[N,S]\|(\d+\|\d+(\|?\d*?)?(\.\d+)?)\|[E,W]', string)
     if COORD_re:
-        lat_dms = map((lambda x: float(x) if not x == '' else 0), COORD_re.group(1).split('|'))
-        if len(lat_dms) < 3: lat_dms.append(0)
-        lat_deg = lat_dms[0] + lat_dms[1]/60 + lat_dms[2]/3600
+        lat_d, lat_m, lat_s = strings_to_dms(COORD_re.group(1).split('|'))
+        lat_dd = dms_to_dd(lat_d, lat_m, lat_s)
         
-        lng_dms = map((lambda x: float(x) if not x == '' else 0), COORD_re.group(4).split('|'))
-        if len(lng_dms) < 3: lng_dms.append(0)
-        lng_deg = lng_dms[0] + lng_dms[1]/60 + lng_dms[2]/3600
+        lng_d, lng_m, lng_s = strings_to_dms(COORD_re.group(4).split('|'))
+        lng_dd = dms_to_dd(lng_d, lng_m, lng_s)
         
-        if is_south: lat_deg *= -1
-        if is_west: lng_deg *= -1
+        if is_south: lat_dd *= -1
+        if is_west: lng_dd *= -1
 
-        return (lat_deg, lng_deg)
+        return (lat_dd, lng_dd)
     
-    #deg表記とdmsの度表記のみ
+    #dd表記とdmsのdegree表記のみ
     COORD_re = re.search('\s?(-?\d+(\.\d+)?)\|([N,S]\|)?\s?(-?\d+(\.\d+)?)', string, re.UNICODE)
     if COORD_re:
         lat_deg = float(COORD_re.group(1))
@@ -80,38 +92,39 @@ def str_to_coord(string):
     return None
     
 def str_to_coord_jp(string):
-    """日本語のinfoboxでの少数派な記述方法
+    '''日本語のinfoboxでの少数派な記述方法
     | 緯度度 = 35 | 緯度分 = 38 | 緯度秒 = 3.8 | N(北緯)及びS(南緯) = N
     | 経度度 = 139 |経度分 = 47 | 経度秒 = 29.8 | E(東経)及びW(西経) = E
-    に対応する"""
+    に対応する
+    '''
+    def strings_to_dms(strings):
+        '''度分秒の文字列リストをそれぞれfloatに変換してdmsのタプルを返す
+        秒が存在しない場合でも0を追加して必ずdmsを返す'''
+        dms = map((lambda x: float(x) if x else 0.0), strings)
+        #dms[1]は度の小数点部分なので無視
+        return (dms[0], dms[2], dms[3])
+
     is_south = re.search('=\s*?S', string, re.UNICODE)
     is_west = re.search('=\s*?W', string, re.UNICODE)
     
     try:
-        lat_dms = re.search(u'緯度度\s*=\s*(-?\d+(\.\d+)?).+緯度分\s*=\s*(\d+)?.+緯度秒\s*=\s*(\d+(\.\d+)?)?', string, re.UNICODE).groups()
+        lat_strings = re.search(u'緯度度\s*=\s*(-?\d+(\.\d+)?).+緯度分\s*=\s*(\d+)?.+緯度秒\s*=\s*(\d+(\.\d+)?)?', string, re.UNICODE).groups()
     except(AttributeError):
         return None
-    lat_dms = map((lambda x: float(x) if x else 0), lat_dms)
-    #緯度度に全て記述されてるときはdmf -> deg 変換を行わない
-    if not lat_dms[1] == 0:
-        lat_deg = lat_dms[0]
-    else:
-        lat_deg = lat_dms[0] + lat_dms[2]/60 + lat_dms[3]/3600
+    lat_d, lat_m, lat_s = strings_to_dms(lat_strings)
+    lat_dd = dms_to_dd(lat_d, lat_m, lat_s)
     
     try:
-        lng_dms = re.search(u'経度度\s*=\s*(-?\d+(\.\d+)?).+経度分\s*=\s*(\d+)?.+経度秒\s*=\s*(\d+(\.\d+)?)?', string, re.UNICODE).groups()
+        lng_strings = re.search(u'経度度\s*=\s*(-?\d+(\.\d+)?).+経度分\s*=\s*(\d+)?.+経度秒\s*=\s*(\d+(\.\d+)?)?', string, re.UNICODE).groups()
     except(AttributeError):
         return None
-    lng_dms = map((lambda x: float(x) if x else 0), lng_dms)
-    if not lng_dms[1] == 0:
-        lng_deg = lng_dms[0]
-    else:
-        lng_deg = lng_dms[0] + lng_dms[2]/60 + lng_dms[3]/3600
+    lng_d, lng_m, lng_s = strings_to_dms(lng_strings)
+    lng_dd = dms_to_dd(lng_d, lng_m, lng_s)
     
-    if is_south: lat_deg *= -1
-    if is_west: lng_deg *= -1
+    if is_south: lat_dd *= -1
+    if is_west: lng_dd *= -1
 
-    return (lat_deg, lng_deg)
+    return (lat_dd, lng_dd)
 
 if __name__ == '__main__':
     PATH = sys.argv[1]
